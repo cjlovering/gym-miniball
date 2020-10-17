@@ -10,8 +10,8 @@ from gym.utils import seeding
 
 NUM_ACTIONS = 3
 
-SCREEN_WIDTH = 48  # 500
-SCREEN_HEIGHT = 48  # 500
+SCREEN_WIDTH = 64  # 500
+SCREEN_HEIGHT = 64  # 500
 SPEED = 0.015
 INTERNAL = 75
 VISIBLE = False
