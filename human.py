@@ -5,7 +5,6 @@ import sys, gym, time
 import gym
 import gym_miniball
 
-print("Set VISIBLE=True in ball.py")
 env = gym.make("MiniBall4-v0")
 
 if not hasattr(env.action_space, "n"):

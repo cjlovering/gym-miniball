@@ -10,16 +10,11 @@ from gym.utils import seeding
 
 NUM_ACTIONS = 3
 
-SCREEN_WIDTH = 64  # 500
-SCREEN_HEIGHT = 64  # 500
+SCREEN_WIDTH = 48  # 500
+SCREEN_HEIGHT = 48  # 500
 SPEED = 0.015
 INTERNAL = 75
 VISIBLE = False
-
-# If playing as a person, reset these values for better graphics.
-if VISIBLE:
-    SCREEN_WIDTH = 500
-    SCREEN_HEIGHT = 500
 
 WIDTH = 64
 HEIGHT = 64
@@ -27,7 +22,7 @@ CHANNELS = 3
 
 VARIANCE = 4
 PLAYER_SPEED = 0.75 * SPEED
-BALL_SPEED = 1 * SPEED
+BALL_SPEED = 1.0 * SPEED
 MAX_BALL_SPEED = 1.5 * SPEED
 MIN_BALL_SPEED = 0.75 * SPEED
 
@@ -113,12 +108,12 @@ class Ball:
         circ.set_color(*self.color)
         circ.add_attr(transform)
 
-    def step(self, platforms):
+    def step(self, platforms, player_platform):
         n_x, n_y = movement_function(self)
         at_boundary = reflect_boundary_function(n_x, n_y, self)
 
         for p in platforms:
-            intersected = redirect_on_platform(n_x, n_y, self.radius, p)
+            intersected = intersects_platform(n_x, n_y, self.radius, p)
             if intersected:
                 finished = False
 
@@ -131,6 +126,9 @@ class Ball:
                 )
                 corners = [(l, b), (l, t), (r, t), (r, b)]
                 for point in corners:
+                    # Is the corner inside the circle from the next location?
+                    # This is not perfect logic... it could be true, but it would have hit the side first.
+                    # If our step size was really small, this would be fine...
                     if point_inside(n_x, n_y, self.radius, point):
                         # Adopted the logic for handling corners from stackexchange:
                         # https://gamedev.stackexchange.com/questions/10911/a-ball-hits-the-corner-where-will-it-deflects
@@ -160,19 +158,21 @@ class Ball:
                 break
 
         # If we're not about to hit something (and thus bounce), move.
+        r = 0
         if not at_boundary:
             self.x = n_x
             self.y = n_y
             self.v = max(0.999 * self.v, MIN_BALL_SPEED)
         else:
-            self.v = max(1.01 * self.v, MAX_BALL_SPEED)
+            self.v = min(1.01 * self.v, MAX_BALL_SPEED)
+            r = 1 if intersects_platform(n_x, n_y, self.radius, player_platform) else 0
             # If we're playing for keeps, the bottom is dangerous!
             if BOTTOM_DANGER:
                 if n_y - self.radius <= 0:
-                    return True
+                    return True, r
 
         # All is well.
-        return False
+        return False, r
 
 
 @dataclasses.dataclass
@@ -215,8 +215,17 @@ class PlayerPlatform:
         poly.set_color(*self.color)
         poly.add_attr(transform)
 
-    def step(self):
+    def step(self, items):
         n_x = self.x + self.v * math.cos(self.direction)
+        n_y = self.y
+
+        for i in items:
+            if item_intersects_platform(
+                i.x, i.y, n_x, n_y, i.radius, self.length, self.width
+            ):
+                self.v = 0
+                return
+
         if (n_x - (self.length / 2) <= 0) or (n_x + (self.length / 2) >= WIDTH):
             self.direction = (3 * 𝛑 - self.direction) % 𝛕
         else:
@@ -283,12 +292,19 @@ class BallEnv(core.Env):
             self.player_platform.v = 0.75 * self.player_platform.v
 
         done = False
+        reward = 0
         for _ in range(self.internal_steps):
-            for i in self.platforms:
+            # Skip player platform.
+            for i in self.platforms[:-1]:
                 i.step()
+            self.player_platform.step(self.items)
             for i in self.items:
-                done |= i.step(self.platforms)
-
+                _done, _reward = i.step(self.platforms, self.player_platform)
+                done |= done
+                reward += _reward
+        # should be at most 1 per set of internal steps.
+        # currently its the number of times it hits the player's platform.
+        reward = max(0, min(1, reward))
         if self.viewer is None:
             self.viewer = rendering.Viewer(SCREEN_HEIGHT, SCREEN_WIDTH)
             self.viewer.set_bounds(0, WIDTH, 0, HEIGHT)
@@ -300,7 +316,6 @@ class BallEnv(core.Env):
             i.draw(self.viewer)
 
         observation = self.viewer.render(return_rgb_array=True)
-        reward = 1 if not done else 0
         return observation.copy(), reward, done, {}
 
 
@@ -314,7 +329,7 @@ def reflect_boundary_function(n_x_loc, n_y_loc, item):
     return False
 
 
-def redirect_on_platform(n_x, n_y, radius, platform):
+def intersects_platform(n_x, n_y, radius, platform):
     item_x_boundary = n_x - radius, n_x + radius
     item_y_boundary = n_y - radius, n_y + radius
     platform_x_boundary = (
@@ -324,6 +339,26 @@ def redirect_on_platform(n_x, n_y, radius, platform):
     platform_y_boundary = (
         platform.y - platform.width / 2,
         platform.y + platform.width / 2,
+    )
+    if intersects(item_x_boundary, platform_x_boundary) and intersects(
+        item_y_boundary, platform_y_boundary
+    ):
+        return True
+    return False
+
+
+def item_intersects_platform(
+    n_x, n_y, p_x, p_y, radius, platform_length, platform_width
+):
+    item_x_boundary = n_x - radius, n_x + radius
+    item_y_boundary = n_y - radius, n_y + radius
+    platform_x_boundary = (
+        p_x - platform_length / 2,
+        p_x + platform_length / 2,
+    )
+    platform_y_boundary = (
+        p_y - platform_width / 2,
+        p_y + platform_width / 2,
     )
     if intersects(item_x_boundary, platform_x_boundary) and intersects(
         item_y_boundary, platform_y_boundary
@@ -431,7 +466,7 @@ def generate_items(config):
         items.append(Ball(x, y, BALL_SPEED, direction * 𝛕))
 
     platform_config = config["platform"]
-    for _ in range(balls_config["number"]):
+    for _ in range(platform_config["number"]):
         x, y = get_random_location(
             platform_config["quadrant"], grid_config["width"], grid_config["height"]
         )
