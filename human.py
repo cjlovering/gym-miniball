@@ -2,9 +2,10 @@
 import sys, gym, time
 
 # https://github.com/openai/gym/blob/master/examples/agents/keyboard_agent.py
-import ball
+import gym
+import gym_miniball
 
-env = ball.make("v1.2")
+env = gym.make("MiniBall-v1")
 
 if not hasattr(env.action_space, "n"):
     raise Exception("Keyboard agent only supports discrete action spaces")

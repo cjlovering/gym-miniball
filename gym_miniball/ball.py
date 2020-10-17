@@ -28,13 +28,13 @@ MAX_BALL_SPEED = 1.5 * SPEED
 
 BOTTOM_DANGER = True
 DEFAULT_CONFIG = {
-    "Ball-v1.1": {
+    "MiniBall-v1": {
         "grid": {"height": 64, "width": 64},
         "player": {"y": 5, "length": 8},
         "balls": {"number": 1, "quadrant": "3",},
         "platform": {"number": 1, "quadrant": "5",},
     },
-    "Ball-v1.2": {
+    "MiniBall-v2": {
         "grid": {"height": 64, "width": 64},
         "player": {"y": 5, "length": 8},
         "balls": {"number": 2, "quadrant": "3",},
@@ -175,15 +175,10 @@ class PlayerPlatform:
 class BallEnv(core.Env):
     metadata = {"render.modes": ["human", "rgb_array"], "video.frames_per_second": 2500}
 
-    def __init__(
-        self,
-        items=None,
-        platforms=None,
-        player_platform=None,
-        config_name=None,
-        internal_steps=INTERNAL,
-        visible=VISIBLE,
-    ):
+    def __init__(self, config_name="MiniBall-v1"):
+        internal_steps = INTERNAL
+        visible = VISIBLE
+
         self.viewer = None
         self.internal_steps = internal_steps
         self.observation_space = spaces.Box(
@@ -196,17 +191,11 @@ class BallEnv(core.Env):
 
         self.config_name = config_name
         self.config = DEFAULT_CONFIG[self.config_name]
+        self.items, self.platforms, self.player_platform = generate_items(
+            DEFAULT_CONFIG[self.config_name]
+        )
 
-        if config_name is not None:
-            self.items, self.platforms, self.player_platform = generate_items(
-                DEFAULT_CONFIG[self.config_name]
-            )
-        else:
-            self.items = items
-            self.platforms = platforms
-            self.player_platform = player_platform
-
-    def render(self):
+    def render(self, mode):
         self.visible = True
         if self.viewer is None:
             self.viewer = rendering.Viewer(SCREEN_HEIGHT, SCREEN_WIDTH)
@@ -258,10 +247,6 @@ class BallEnv(core.Env):
         observation = self.viewer.render(return_rgb_array=True)
         reward = 1 if not done else 0
         return observation, reward, done, {}
-
-
-def make(config_name="Ball-v1.1"):
-    return BallEnv(config_name=config_name)
 
 
 def reflect_boundary_function(n_x_loc, n_y_loc, item):
@@ -379,14 +364,7 @@ def generate_items(config):
     return items, platforms, player_platform
 
 
-if __name__ == "__main__":
-    env = BallEnv(config_name=DEFAULT_CONFIG)
-    for _ in range(10):
-        env.reset()
-        i = 0
-        while i < 1000:
-            i += 1
-            observation, reward, done, info = env.step(0)
-            if done:
-                break
-    env.close()
+class BallEnv2(BallEnv):
+    def __init__(self):
+        super().__init__(config_name="MiniBall-v2")
+
