@@ -40,6 +40,12 @@ DEFAULT_CONFIG = {
         "balls": {"number": 2, "quadrant": "3",},
         "platform": {"number": 2, "quadrant": "5",},
     },
+    "MiniBall-v1-test": {
+        "grid": {"height": 64, "width": 64},
+        "player": {"y": 5, "length": 8},
+        "balls": {"number": 1, "quadrant": "3",},
+        "platform": {"number": 1, "quadrant": "1",},
+    },
 }
 
 SKIP_ACTION = 0
@@ -364,7 +370,11 @@ def generate_items(config):
     return items, platforms, player_platform
 
 
+class BallEnv1Test(BallEnv):
+    def __init__(self):
+        super().__init__(config_name="MiniBall-v1-test")
+
+
 class BallEnv2(BallEnv):
     def __init__(self):
         super().__init__(config_name="MiniBall-v2")
-
