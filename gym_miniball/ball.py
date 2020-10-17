@@ -30,55 +30,55 @@ BOTTOM_DANGER = True
 DEFAULT_CONFIG = {
     "MiniBall1-v0": {
         "grid": {"height": 64, "width": 64},
-        "player": {"y": 5, "length": 8},
+        "player": {"y": 5, "length": 12},
         "balls": {"number": 1, "quadrant": "3",},
         "platform": {"number": 1, "quadrant": "1",},
     },
     "MiniBall2-v0": {
         "grid": {"height": 64, "width": 64},
-        "player": {"y": 5, "length": 8},
+        "player": {"y": 5, "length": 12},
         "balls": {"number": 1, "quadrant": "3",},
         "platform": {"number": 1, "quadrant": "2",},
     },
     "MiniBall3-v0": {
         "grid": {"height": 64, "width": 64},
-        "player": {"y": 5, "length": 8},
+        "player": {"y": 5, "length": 12},
         "balls": {"number": 1, "quadrant": "4",},
         "platform": {"number": 1, "quadrant": "3",},
     },
     "MiniBall4-v0": {
         "grid": {"height": 64, "width": 64},
-        "player": {"y": 5, "length": 8},
+        "player": {"y": 5, "length": 12},
         "balls": {"number": 1, "quadrant": "3",},
         "platform": {"number": 1, "quadrant": "4",},
     },
     "MiniBall5-v0": {
         "grid": {"height": 64, "width": 64},
-        "player": {"y": 5, "length": 8},
+        "player": {"y": 5, "length": 12},
         "balls": {"number": 1, "quadrant": "3",},
         "platform": {"number": 1, "quadrant": "5",},
     },
     "MiniBall6-v0": {
         "grid": {"height": 64, "width": 64},
-        "player": {"y": 5, "length": 8},
+        "player": {"y": 5, "length": 12},
         "balls": {"number": 1, "quadrant": "3",},
         "platform": {"number": 1, "quadrant": "6",},
     },
     "MiniBall7-v0": {
         "grid": {"height": 64, "width": 64},
-        "player": {"y": 5, "length": 8},
+        "player": {"y": 5, "length": 12},
         "balls": {"number": 1, "quadrant": "3",},
         "platform": {"number": 1, "quadrant": "7",},
     },
     "MiniBall8-v0": {
         "grid": {"height": 64, "width": 64},
-        "player": {"y": 5, "length": 8},
+        "player": {"y": 5, "length": 12},
         "balls": {"number": 1, "quadrant": "3",},
         "platform": {"number": 1, "quadrant": "8",},
     },
     "MiniBall-v2": {
         "grid": {"height": 64, "width": 64},
-        "player": {"y": 5, "length": 8},
+        "player": {"y": 5, "length": 12},
         "balls": {"number": 2, "quadrant": "3",},
         "platform": {"number": 2, "quadrant": "5",},
     },
@@ -110,7 +110,8 @@ class Ball:
 
     def step(self, platforms, player_platform):
         n_x, n_y = movement_function(self)
-        at_boundary = reflect_boundary_function(n_x, n_y, self)
+        at_boundary = propel_boundary_function(n_x, n_y, self)
+        intersects_player = intersects_platform(n_x, n_y, self.radius, player_platform)
 
         for p in platforms:
             intersected = intersects_platform(n_x, n_y, self.radius, p)
@@ -146,33 +147,37 @@ class Ball:
 
                 # If we did not hit a corner, check if we hit the top/bot or a side.
                 if not finished:
-                    # Top / bot side.
-                    if (p.x - p.length / 2 <= self.x) and (
-                        self.x <= p.x + p.length / 2
-                    ):
-                        self.direction = (𝛕 - self.direction) % 𝛕
-                    # Left / right side
+                    if intersects_player:
+                        delta = (player_platform.x - self.x) / (
+                            player_platform.length / 2
+                        )
+                        self.direction = (𝛕 - self.direction - delta) % 𝛕
                     else:
-                        self.direction = (3 * 𝛑 - self.direction) % 𝛕
+                        # Top / bot side.
+                        if (p.x - p.length / 2 <= self.x) and (
+                            self.x <= p.x + p.length / 2
+                        ):
+                            self.direction = (𝛕 - self.direction) % 𝛕
+                        # Left / right side
+                        else:
+                            self.direction = (3 * 𝛑 - self.direction) % 𝛕
                 at_boundary = True
                 break
 
         # If we're not about to hit something (and thus bounce), move.
-        r = 0
         if not at_boundary:
             self.x = n_x
             self.y = n_y
             self.v = max(0.999 * self.v, MIN_BALL_SPEED)
         else:
             self.v = min(1.01 * self.v, MAX_BALL_SPEED)
-            r = 1 if intersects_platform(n_x, n_y, self.radius, player_platform) else 0
             # If we're playing for keeps, the bottom is dangerous!
             if BOTTOM_DANGER:
                 if n_y - self.radius <= 0:
                     return True, r
 
         # All is well.
-        return False, r
+        return False
 
 
 @dataclasses.dataclass
@@ -292,20 +297,14 @@ class BallEnv(core.Env):
         elif action == SKIP_ACTION:
             self.player_platform.v = 0.75 * self.player_platform.v
 
-        done = False
-        reward = 0
         for _ in range(self.internal_steps):
             # Skip player platform.
             for i in self.platforms[:-1]:
                 i.step()
             self.player_platform.step(self.items)
             for i in self.items:
-                _done, _reward = i.step(self.platforms, self.player_platform)
-                done |= _done
-                reward += _reward
-        # should be at most 1 per set of internal steps.
-        # currently its the number of times it hits the player's platform.
-        reward = max(0, min(1, reward))
+                done |= i.step(self.platforms, self.player_platform)
+
         if self.viewer is None:
             self.viewer = rendering.Viewer(SCREEN_HEIGHT, SCREEN_WIDTH)
             self.viewer.set_bounds(0, WIDTH, 0, HEIGHT)
@@ -315,7 +314,7 @@ class BallEnv(core.Env):
             i.draw(self.viewer)
         for i in self.platforms:
             i.draw(self.viewer)
-
+        reward = 1 if not done else -1
         observation = self.viewer.render(return_rgb_array=True)
         return observation.copy(), reward, done, {}
 
@@ -326,6 +325,24 @@ def reflect_boundary_function(n_x_loc, n_y_loc, item):
         return True
     elif (n_y_loc - item.radius <= 0) or (n_y_loc + item.radius >= HEIGHT):
         item.direction = (𝛕 - item.direction) % 𝛕
+        return True
+    return False
+
+
+def propel_boundary_function(n_x_loc, n_y_loc, item):
+    if (n_x_loc - item.radius <= 0) or (n_x_loc + item.radius >= WIDTH):
+        delta = (n_y_loc - item.y) / (HEIGHT / 2)
+        item.direction = (3 * 𝛑 - item.direction + delta) % 𝛕
+
+        # prevent for-ever bouncing.
+        updown = 1 if np.sin(item.direction) > 0 else -1
+        if abs(item.direction - 0) < 0.15 or abs(item.direction - 𝛑) < 0.15:
+            item.direction += 0.15 * updown
+
+        return True
+    elif (n_y_loc - item.radius <= 0) or (n_y_loc + item.radius >= HEIGHT):
+        delta = (n_x_loc - item.x) / (WIDTH / 2)
+        item.direction = (𝛕 - item.direction + delta) % 𝛕
         return True
     return False
 
@@ -460,7 +477,7 @@ def generate_items(config):
 
     balls_config = config["balls"]
     for _ in range(balls_config["number"]):
-        direction = np.random.uniform(0.15, 0.35)
+        direction = 0  # np.random.uniform(0.15, 0.35)
         x, y = get_random_location(
             balls_config["quadrant"], grid_config["width"], grid_config["height"]
         )
