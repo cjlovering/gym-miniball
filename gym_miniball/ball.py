@@ -1,30 +1,25 @@
 import dataclasses
 import math
 
-import cv2 as cv
 import numpy as np
 
 from gym.envs.classic_control import rendering
 from gym import core, spaces
 from gym.utils import seeding
 
-𝛕 = 2 * math.pi
-𝛑 = math.pi
 
 NUM_ACTIONS = 3
 
 SCREEN_WIDTH = 64  # 500
 SCREEN_HEIGHT = 64  # 500
-SPEED = 0.01
-INTERNAL = 100
+SPEED = 0.015
+INTERNAL = 75
 VISIBLE = False
 
 # If playing as a person, reset these values for better graphics.
 if VISIBLE:
     SCREEN_WIDTH = 500
     SCREEN_HEIGHT = 500
-    SPEED = 1
-    INTERNAL = 1
 
 WIDTH = 64
 HEIGHT = 64
@@ -97,6 +92,9 @@ DEFAULT_CONFIG = {
 SKIP_ACTION = 0
 BOOST_LEFT_ACTION = 1
 BOOST_RIGHT_ACTION = 2
+
+𝛕 = 2 * math.pi
+𝛑 = math.pi
 
 
 @dataclasses.dataclass
@@ -249,7 +247,11 @@ class BallEnv(core.Env):
         )
 
     def render(self, mode):
-        self.visible = True
+        if mode == "human":
+            self.visible = True
+            SCREEN_HEIGHT, SCREEN_WIDTH = 500, 500
+        else:
+            self.visible = False
         if self.viewer is None:
             self.viewer = rendering.Viewer(SCREEN_HEIGHT, SCREEN_WIDTH)
             self.viewer.set_bounds(0, WIDTH, 0, HEIGHT)
@@ -346,8 +348,12 @@ def intersects(a, b):
     return not (a[0] > b[1] or a[1] < b[0])
 
 
-def get_random_location(partition, width, height, delta=2):
+def get_random_location(quadrant, width, height, delta=4):
     """
+    Gets a random location in the given quadrant (or octant).
+
+    Normally distributed from the center with var VARIANCE.
+
     ---------
     | 1 | 2 |
     | 3 | 4 |
@@ -356,40 +362,43 @@ def get_random_location(partition, width, height, delta=2):
     ---------
     """
 
-    if partition == "1":
+    if quadrant == "1":
         x_left, x_right = 0, width / 2
         y_bot, y_top = height * 3 / 4, height
-    elif partition == "2":
+    elif quadrant == "2":
         x_left, x_right = width / 2, width
         y_bot, y_top = height * 3 / 4, height
-    elif partition == "3":
+    elif quadrant == "3":
         x_left, x_right = 0, width / 2
         y_bot, y_top = height / 2, height * 3 / 4
-    elif partition == "4":
+    elif quadrant == "4":
         x_left, x_right = width / 2, width
         y_bot, y_top = height / 2, height * 3 / 4
-    elif partition == "5":
+    elif quadrant == "5":
         x_left, x_right = 0, width / 2
         y_bot, y_top = height * 1 / 4, height * 1 / 2
-    elif partition == "6":
+    elif quadrant == "6":
         x_left, x_right = width / 2, width
         y_bot, y_top = height * 1 / 4, height * 1 / 2
-    elif partition == "7":
+    elif quadrant == "7":
         x_left, x_right = 0, width / 2
         y_bot, y_top = 0, height * 1 / 4
-    elif partition == "8":
+    elif quadrant == "8":
         x_left, x_right = width / 2, width
         y_bot, y_top = 0, height * 1 / 4
 
-    x = np.clip(
+    # x = np.clip(
+    #    ,
+    #     x_left + delta,
+    #     x_right - delta,
+    # )
+    # y = np.clip(
+    #     , y_bot + delta, y_top - delta
+    # )
+    return (
         np.random.normal((x_left + x_right) / 2, VARIANCE),
-        x_left + delta,
-        x_right - delta,
+        np.random.normal((y_bot + y_top) / 2, VARIANCE),
     )
-    y = np.clip(
-        np.random.normal((y_bot + y_top) / 2, VARIANCE), y_bot + delta, y_top - delta
-    )
-    return x, y
 
 
 def generate_items(config):

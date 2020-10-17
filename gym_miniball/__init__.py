@@ -11,7 +11,7 @@ from .ball import (
 
 from gym.envs.registration import register
 
-max_episode_steps = 1000
+max_episode_steps = 10_000
 register(
     id="MiniBall1-v0",
     entry_point="gym_miniball:BallEnv1",

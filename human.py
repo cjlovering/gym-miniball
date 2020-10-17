@@ -6,7 +6,7 @@ import gym
 import gym_miniball
 
 print("Set VISIBLE=True in ball.py")
-env = gym.make("MiniBall5-v0")
+env = gym.make("MiniBall4-v0")
 
 if not hasattr(env.action_space, "n"):
     raise Exception("Keyboard agent only supports discrete action spaces")
@@ -52,6 +52,7 @@ def rollout(env):
     skip = 0
     total_reward = 0
     total_timesteps = 0
+    env.render()
     while 1:
         if not skip:
             # print("taking action {}".format(human_agent_action))
@@ -62,8 +63,7 @@ def rollout(env):
             skip -= 1
 
         obser, r, done, info = env.step(a)
-        if r != 0:
-            print("reward %0.3f" % r)
+
         total_reward += r
         window_still_open = env.render()
         if window_still_open == False:
@@ -72,11 +72,11 @@ def rollout(env):
             break
         if human_wants_restart:
             break
-        while human_sets_pause:
-            env.render()
             time.sleep(0.001)
         time.sleep(0.001)
     print("timesteps %i reward %0.2f" % (total_timesteps, total_reward))
+    if total_reward == 10_000:
+        print("max score!")
 
 
 print(f"ACTIONS={ACTIONS}")
