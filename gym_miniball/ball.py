@@ -301,7 +301,7 @@ class BallEnv(core.Env):
             self.player_platform.step(self.items)
             for i in self.items:
                 _done, _reward = i.step(self.platforms, self.player_platform)
-                done |= done
+                done |= _done
                 reward += _reward
         # should be at most 1 per set of internal steps.
         # currently its the number of times it hits the player's platform.
