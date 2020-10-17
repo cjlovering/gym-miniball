@@ -348,11 +348,19 @@ def intersects(a, b):
     return not (a[0] > b[1] or a[1] < b[0])
 
 
-def get_random_location(quadrant, width, height, delta=4):
+def get_random_location(quadrant, width, height, variance=VARIANCE):
     """
     Gets a random location in the given quadrant (or octant).
 
     Normally distributed from the center with var VARIANCE.
+
+    Paramters
+    ---------
+    quadrant : ``str``
+        Specifies which quadrant to sample from.
+    width, height : ``int``
+        Dimensions of the screen's underlying grid.
+
 
     ---------
     | 1 | 2 |
@@ -387,17 +395,9 @@ def get_random_location(quadrant, width, height, delta=4):
         x_left, x_right = width / 2, width
         y_bot, y_top = 0, height * 1 / 4
 
-    # x = np.clip(
-    #    ,
-    #     x_left + delta,
-    #     x_right - delta,
-    # )
-    # y = np.clip(
-    #     , y_bot + delta, y_top - delta
-    # )
     return (
-        np.random.normal((x_left + x_right) / 2, VARIANCE),
-        np.random.normal((y_bot + y_top) / 2, VARIANCE),
+        np.random.normal((x_left + x_right) / 2, variance),
+        np.random.normal((y_bot + y_top) / 2, variance),
     )
 
 
@@ -417,7 +417,7 @@ def generate_items(config):
     player_platform = PlayerPlatform(
         platform_center,
         player_config["y"],
-        SPEED,
+        0,
         direction,
         length=player_config["length"],
     )
