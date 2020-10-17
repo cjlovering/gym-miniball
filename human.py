@@ -64,6 +64,8 @@ def rollout(env):
         obser, r, done, info = env.step(a)
 
         total_reward += r
+        if r > 0:
+            print(f"reward: {r}, return: {total_reward}")
         window_still_open = env.render()
         if window_still_open == False:
             return False

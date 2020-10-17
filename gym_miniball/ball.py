@@ -220,6 +220,7 @@ class PlayerPlatform:
         n_y = self.y
 
         for i in items:
+            # This makes it so the ball can't get stuck within the platform.
             if item_intersects_platform(
                 i.x, i.y, n_x, n_y, i.radius, self.length, self.width
             ):
@@ -431,8 +432,8 @@ def get_random_location(quadrant, width, height, variance=VARIANCE):
         y_bot, y_top = 0, height * 1 / 4
 
     return (
-        np.random.normal((x_left + x_right) / 2, variance),
-        np.random.normal((y_bot + y_top) / 2, variance),
+        np.clip(np.random.normal((x_left + x_right) / 2, variance), x_left, x_right),
+        np.clip(np.random.normal((y_bot + y_top) / 2, variance), y_bot, y_top),
     )
 
 
