@@ -53,7 +53,7 @@ DEFAULT_CONFIG = {
     "MiniBall3-v0": {
         "grid": {"height": 64, "width": 64},
         "player": {"y": 5, "length": 8},
-        "balls": {"number": 1, "quadrant": "3",},
+        "balls": {"number": 1, "quadrant": "4",},
         "platform": {"number": 1, "quadrant": "3",},
     },
     "MiniBall4-v0": {
@@ -445,12 +445,13 @@ class BallEnv2(BallEnv):
 class BallEnv3(BallEnv):
     def __init__(self):
         super().__init__(config_name="MiniBall3-v0")
-        print("Warning, ball and platform may overlap.")
+        # Used for training distribution.
 
 
 class BallEnv4(BallEnv):
     def __init__(self):
         super().__init__(config_name="MiniBall4-v0")
+        # Used for test distribution.
 
 
 class BallEnv5(BallEnv):
