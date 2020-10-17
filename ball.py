@@ -1,23 +1,8 @@
-import cv2 as cv
-import matplotlib.pyplot as plt
-import seaborn as sns
-import json
-import pandas as pd
-import numpy as np
-import glob
-import itertools
+import dataclasses
 import math
 
-from collections import ChainMap
-from collections import Counter
-from collections import defaultdict
-from scipy.stats import zscore
-
-import scipy.stats as stats
-import dataclasses
-import matplotlib.colors as colors
-import matplotlib.cm as cm
-from sklearn.metrics import ndcg_score
+import cv2 as cv
+import numpy as np
 
 from gym.envs.classic_control import rendering
 from gym import core, spaces
@@ -43,13 +28,13 @@ MAX_BALL_SPEED = 1.5 * SPEED
 
 BOTTOM_DANGER = True
 DEFAULT_CONFIG = {
-    "v1.1": {
+    "Ball-v1.1": {
         "grid": {"height": 64, "width": 64},
         "player": {"y": 5, "length": 8},
         "balls": {"number": 1, "quadrant": "3",},
         "platform": {"number": 1, "quadrant": "5",},
     },
-    "v1.2": {
+    "Ball-v1.2": {
         "grid": {"height": 64, "width": 64},
         "player": {"y": 5, "length": 8},
         "balls": {"number": 2, "quadrant": "3",},
@@ -60,54 +45,6 @@ DEFAULT_CONFIG = {
 SKIP_ACTION = 0
 BOOST_LEFT_ACTION = 1
 BOOST_RIGHT_ACTION = 2
-
-
-def make(config_name="v1.1"):
-    return BallEnv(config_name=config_name)
-
-
-def reflect_boundary_function(n_x_loc, n_y_loc, item):
-    if (n_x_loc - item.radius <= 0) or (n_x_loc + item.radius >= WIDTH):
-        item.direction = (3 * 𝛑 - item.direction) % 𝛕
-        return True
-    elif (n_y_loc - item.radius <= 0) or (n_y_loc + item.radius >= HEIGHT):
-        item.direction = (𝛕 - item.direction) % 𝛕
-        return True
-    return False
-
-
-def redirect_on_platform(n_x, n_y, radius, platform):
-    item_x_boundary = n_x - radius, n_x + radius
-    item_y_boundary = n_y - radius, n_y + radius
-    platform_x_boundary = (
-        platform.x - platform.length / 2,
-        platform.x + platform.length / 2,
-    )
-    platform_y_boundary = (
-        platform.y - platform.width / 2,
-        platform.y + platform.width / 2,
-    )
-    if intersects(item_x_boundary, platform_x_boundary) and intersects(
-        item_y_boundary, platform_y_boundary
-    ):
-        return True
-    return False
-
-
-def movement_function(item):
-    n_x_loc = item.x + item.v * math.cos(item.direction)
-    n_y_loc = item.y + item.v * math.sin(item.direction)
-    return n_x_loc, n_y_loc
-
-
-def point_inside(n_x, n_y, radius, point):
-    return (n_x - radius <= point[0] and point[0] <= n_x + radius) and (
-        n_y - radius <= point[1] and point[1] <= n_y + radius
-    )
-
-
-def intersects(a, b):
-    return not (a[0] > b[1] or a[1] < b[0])
 
 
 @dataclasses.dataclass
@@ -207,16 +144,6 @@ class Platform:
 
     def step(self):
         pass
-        # before_direction = self.direction
-        # n_x, n_y = self.movement_function(self.t, self)
-        # at_boundary = self.boundary_function(n_x, n_y, self)
-        # if at_boundary:
-        #     nn_x, nn_y = n_x, n_y
-        #     n_x, n_y = self.movement_function(self.t, self)
-
-        # self.x = n_x
-        # self.y = n_y
-        # self.t += 1
 
 
 @dataclasses.dataclass
@@ -331,6 +258,54 @@ class BallEnv(core.Env):
         observation = self.viewer.render(return_rgb_array=True)
         reward = 1 if not done else 0
         return observation, reward, done, {}
+
+
+def make(config_name="Ball-v1.1"):
+    return BallEnv(config_name=config_name)
+
+
+def reflect_boundary_function(n_x_loc, n_y_loc, item):
+    if (n_x_loc - item.radius <= 0) or (n_x_loc + item.radius >= WIDTH):
+        item.direction = (3 * 𝛑 - item.direction) % 𝛕
+        return True
+    elif (n_y_loc - item.radius <= 0) or (n_y_loc + item.radius >= HEIGHT):
+        item.direction = (𝛕 - item.direction) % 𝛕
+        return True
+    return False
+
+
+def redirect_on_platform(n_x, n_y, radius, platform):
+    item_x_boundary = n_x - radius, n_x + radius
+    item_y_boundary = n_y - radius, n_y + radius
+    platform_x_boundary = (
+        platform.x - platform.length / 2,
+        platform.x + platform.length / 2,
+    )
+    platform_y_boundary = (
+        platform.y - platform.width / 2,
+        platform.y + platform.width / 2,
+    )
+    if intersects(item_x_boundary, platform_x_boundary) and intersects(
+        item_y_boundary, platform_y_boundary
+    ):
+        return True
+    return False
+
+
+def movement_function(item):
+    n_x_loc = item.x + item.v * math.cos(item.direction)
+    n_y_loc = item.y + item.v * math.sin(item.direction)
+    return n_x_loc, n_y_loc
+
+
+def point_inside(n_x, n_y, radius, point):
+    return (n_x - radius <= point[0] and point[0] <= n_x + radius) and (
+        n_y - radius <= point[1] and point[1] <= n_y + radius
+    )
+
+
+def intersects(a, b):
+    return not (a[0] > b[1] or a[1] < b[0])
 
 
 def get_random_location(partition, width, height, delta=2):
