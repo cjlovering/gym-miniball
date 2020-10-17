@@ -1,6 +1,7 @@
 ## gym miniball
 
 ```
+pip install gym
 git clone git@github.com:cjlovering/gym-miniball.git
 cd gym-miniball/
 pip install -e .
