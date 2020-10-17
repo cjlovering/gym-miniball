@@ -11,8 +11,8 @@ from .ball import (
 
 from gym.envs.registration import register
 
-reward_threshold = 1000
-max_episode_steps = 5_000
+reward_threshold = 5000
+max_episode_steps = 5000
 register(
     id="MiniBall1-v0",
     entry_point="gym_miniball:BallEnv1",

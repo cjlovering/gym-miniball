@@ -174,7 +174,7 @@ class Ball:
             # If we're playing for keeps, the bottom is dangerous!
             if BOTTOM_DANGER:
                 if n_y - self.radius <= 0:
-                    return True, r
+                    return True
 
         # All is well.
         return False
@@ -297,6 +297,7 @@ class BallEnv(core.Env):
         elif action == SKIP_ACTION:
             self.player_platform.v = 0.75 * self.player_platform.v
 
+        done = False
         for _ in range(self.internal_steps):
             # Skip player platform.
             for i in self.platforms[:-1]:
@@ -477,7 +478,7 @@ def generate_items(config):
 
     balls_config = config["balls"]
     for _ in range(balls_config["number"]):
-        direction = 0  # np.random.uniform(0.15, 0.35)
+        direction = np.random.uniform(0.15, 0.35)
         x, y = get_random_location(
             balls_config["quadrant"], grid_config["width"], grid_config["height"]
         )
