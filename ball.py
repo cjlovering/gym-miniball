@@ -27,31 +27,43 @@ from gym.utils import seeding
 𝛑 = math.pi
 
 NUM_ACTIONS = 3
-SCREEN_WIDTH = 500
-SCREEN_HEIGHT = 500
+SCREEN_WIDTH = 100
+SCREEN_HEIGHT = 100
 WIDTH = 64
 HEIGHT = 64
 CHANNELS = 3
 
-
-SPEED = 0.01
+VISIBLE = True
+SPEED = 0.02
 INTERNAL = 100
 VARIANCE = 4
+PLAYER_SPEED = 0.75 * SPEED
 BALL_SPEED = 1 * SPEED
-PLAYER_SPEED = 0.5 * SPEED
-VISIBLE = True
+MAX_BALL_SPEED = 1.5 * SPEED
 
 BOTTOM_DANGER = True
 DEFAULT_CONFIG = {
-    "grid": {"height": 64, "width": 64},
-    "player": {"y": 5, "length": 8},
-    "balls": {"number": 1, "quadrant": "3",},
-    "platform": {"number": 1, "quadrant": "1",},
+    "v1.1": {
+        "grid": {"height": 64, "width": 64},
+        "player": {"y": 5, "length": 8},
+        "balls": {"number": 1, "quadrant": "3",},
+        "platform": {"number": 1, "quadrant": "5",},
+    },
+    "v1.2": {
+        "grid": {"height": 64, "width": 64},
+        "player": {"y": 5, "length": 8},
+        "balls": {"number": 2, "quadrant": "3",},
+        "platform": {"number": 2, "quadrant": "5",},
+    },
 }
 
 SKIP_ACTION = 0
 BOOST_LEFT_ACTION = 1
 BOOST_RIGHT_ACTION = 2
+
+
+def make(config_name="v1.1"):
+    return BallEnv(config_name=config_name)
 
 
 def reflect_boundary_function(n_x_loc, n_y_loc, item):
@@ -67,7 +79,6 @@ def reflect_boundary_function(n_x_loc, n_y_loc, item):
 def redirect_on_platform(n_x, n_y, radius, platform):
     item_x_boundary = n_x - radius, n_x + radius
     item_y_boundary = n_y - radius, n_y + radius
-
     platform_x_boundary = (
         platform.x - platform.length / 2,
         platform.x + platform.length / 2,
@@ -76,18 +87,11 @@ def redirect_on_platform(n_x, n_y, radius, platform):
         platform.y - platform.width / 2,
         platform.y + platform.width / 2,
     )
-
     if intersects(item_x_boundary, platform_x_boundary) and intersects(
         item_y_boundary, platform_y_boundary
     ):
         return True
     return False
-
-
-def additive_movement_function(t, item):
-    n_x_loc = item.x + item.v * math.cos(item.direction)
-    n_y_loc = item.y + item.v * math.sin(item.direction)
-    return n_x_loc, n_y_loc
 
 
 def movement_function(item):
@@ -112,10 +116,8 @@ class Ball:
     y: float
     v: float
     direction: float
-    boundary_function: dataclasses.field() = reflect_boundary_function
-    movement_function: dataclasses.field() = movement_function
     color: tuple = (0.1, 0.1, 0.1)  # r, b, g
-    radius: int = 0.5
+    radius: int = 1
     t: int = 0
 
     def draw(self, viewer):
@@ -125,9 +127,8 @@ class Ball:
         circ.add_attr(transform)
 
     def step(self, platforms):
-        n_x, n_y = self.movement_function(self)
-        at_boundary = self.boundary_function(n_x, n_y, self)
-        direction = self.direction
+        n_x, n_y = movement_function(self)
+        at_boundary = reflect_boundary_function(n_x, n_y, self)
 
         for p in platforms:
             intersected = redirect_on_platform(n_x, n_y, self.radius, p)
@@ -176,6 +177,7 @@ class Ball:
             self.x = n_x
             self.y = n_y
         else:
+            self.v = max(1.01 * self.v, MAX_BALL_SPEED)
             # If we're playing for keeps, the bottom is dangerous!
             if BOTTOM_DANGER:
                 if n_y - self.radius <= 0:
@@ -191,8 +193,6 @@ class Platform:
     y: float
     v: float
     direction: float
-    boundary_function: dataclasses.field() = reflect_boundary_function
-    movement_function: dataclasses.field() = additive_movement_function
     color: tuple = (0.8, 0.8, 0.8)  # r, b, g
     length: int = 16
     width: int = 4
@@ -225,11 +225,9 @@ class PlayerPlatform:
     y: float
     v: float
     direction: float
-    boundary_function: dataclasses.field() = reflect_boundary_function
-    movement_function: dataclasses.field() = additive_movement_function
     color: tuple = (0.8, 0.2, 0.2)  # r, b, g
     length: int = 16
-    width: int = 4
+    width: int = 1
     t: int = 0
 
     def draw(self, viewer):
@@ -241,12 +239,10 @@ class PlayerPlatform:
 
     def step(self):
         n_x = self.x + self.v * math.cos(self.direction)
-        n_y = self.y + self.v * math.sin(self.direction)
         if (n_x - (self.length / 2) <= 0) or (n_x + (self.length / 2) >= WIDTH):
             self.direction = (3 * 𝛑 - self.direction) % 𝛕
         else:
             self.x = n_x
-            self.y = n_y
 
 
 class BallEnv(core.Env):
@@ -257,7 +253,7 @@ class BallEnv(core.Env):
         items=None,
         platforms=None,
         player_platform=None,
-        config=DEFAULT_CONFIG,
+        config_name=None,
         internal_steps=INTERNAL,
         visible=VISIBLE,
     ):
@@ -271,11 +267,12 @@ class BallEnv(core.Env):
         self.visible = visible
         self.seed()
 
-        self.config = config
+        self.config_name = config_name
+        self.config = DEFAULT_CONFIG[self.config_name]
 
-        if config is not None:
+        if config_name is not None:
             self.items, self.platforms, self.player_platform = generate_items(
-                self.config
+                DEFAULT_CONFIG[self.config_name]
             )
         else:
             self.items = items
@@ -299,21 +296,20 @@ class BallEnv(core.Env):
     def reset(self):
         if self.config is None:
             assert False
-        self.items, self.platforms, self.player_platform = generate_items(self.config)
+        self.items, self.platforms, self.player_platform = generate_items(
+            DEFAULT_CONFIG[self.config_name]
+        )
         return self.step(0)
 
     def step(self, action):
         if action == BOOST_LEFT_ACTION:
-            self.player_platform.v = 1 * SPEED
+            self.player_platform.v = PLAYER_SPEED
             self.player_platform.direction = 𝛑
-            print(f"ACTION LEFT: {action}")
         elif action == BOOST_RIGHT_ACTION:
-            self.player_platform.v = 1 * SPEED
+            self.player_platform.v = PLAYER_SPEED
             self.player_platform.direction = 0
         elif action == SKIP_ACTION:
-            print(f"ACTION SKIPPED: {action}")
-        else:
-            print(f"ACTION UNRECOGNIZED: {action}")
+            pass
 
         done = False
         for _ in range(self.internal_steps):
@@ -350,6 +346,12 @@ def get_random_location(partition, width, height, delta=2):
     elif partition == "4":
         x_left, x_right = width / 2, width
         y_bot, y_top = height / 2, height * 3 / 4
+    elif partition == "5":
+        x_left, x_right = width / 2, width
+        y_bot, y_top = height * 1 / 4, height * 1 / 2
+    elif partition == "6":
+        x_left, x_right = 0, width / 2
+        y_bot, y_top = height * 1 / 4, height * 1 / 2
 
     x = np.clip(
         np.random.normal((x_left + x_right) / 2, VARIANCE),
@@ -398,13 +400,12 @@ def generate_items(config):
         )
         platforms.append(Platform(x, y, 0, 0))
     platforms.append(player_platform)
-    # env = BallEnv(items, platforms, INTERNAL, VISIBLE)
+
     return items, platforms, player_platform
 
 
 if __name__ == "__main__":
-
-    env = BallEnv(config=DEFAULT_CONFIG)
+    env = BallEnv(config_name=DEFAULT_CONFIG)
     for _ in range(10):
         env.reset()
         i = 0
@@ -413,41 +414,4 @@ if __name__ == "__main__":
             observation, reward, done, info = env.step(0)
             if done:
                 break
-
-    # end = time.time()
-    # print(1000 / (end - start))
     env.close()
-
-    # import pyglet
-    # import time
-
-    # SPEED = 0.01
-    # env = BallEnv(
-    #     [
-    #         Ball(10, 10, SPEED, 0.25 * 𝛑),
-    #         Ball(10, 10, SPEED, 0.65 * 𝛑),
-    #         Ball(25, 40, SPEED, 0.50 * 𝛑),
-    #         Ball(10, 40, SPEED, 1.65 * 𝛑),
-    #         Ball(10, 50, SPEED, 5.65 * 𝛑),
-    #         Ball(10, 10, SPEED, 0.22 * 𝛑),
-    #         Ball(10, 10, SPEED, 0.54 * 𝛑),
-    #         Ball(25, 40, SPEED, 3.64 * 𝛑),
-    #         Ball(10, 40, SPEED, 4.65 * 𝛑),
-    #         Ball(10, 50, SPEED, 5.65 * 𝛑),
-    #     ],
-    #     [
-    #         PlayerPlatform(32, 1, SPEED, 𝛕, length=8),
-    #         Platform(25, 50, 0, 0),
-    #         Platform(45, 25, 0, 0),
-    #     ],
-    #     visible=True,
-    #     internal_steps=100
-    # )
-    # STEPS = 1000
-    # start = time.time()
-    # for _ in range(STEPS):
-    #     env.step("n/a")
-    # end = time.time()
-    # print(STEPS / (end - start))
-    # env.close()
-

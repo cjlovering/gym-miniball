@@ -4,7 +4,7 @@ import sys, gym, time
 # https://github.com/openai/gym/blob/master/examples/agents/keyboard_agent.py
 import ball
 
-env = ball.BallEnv()
+env = ball.make("v1.2")
 
 if not hasattr(env.action_space, "n"):
     raise Exception("Keyboard agent only supports discrete action spaces")
@@ -77,7 +77,7 @@ def rollout(env):
     print("timesteps %i reward %0.2f" % (total_timesteps, total_reward))
 
 
-print("ACTIONS={}".format(ACTIONS))
+print(f"ACTIONS={ACTIONS}")
 print("Press keys 1 2 3 ... to take actions 1 2 3 ...")
 print("No keys pressed is taking action 0")
 
