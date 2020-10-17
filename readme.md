@@ -3,5 +3,6 @@
 ```
 cd gym_miniball/
 pip install -e .
-python human.py
+# press 1 to go left, 2 to go right.
+python human.py 
 ```

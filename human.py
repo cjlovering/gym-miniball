@@ -5,7 +5,7 @@ import sys, gym, time
 import gym
 import gym_miniball
 
-env = gym.make("MiniBall-v1")
+env = gym.make("MiniBall5-v0")
 
 if not hasattr(env.action_space, "n"):
     raise Exception("Keyboard agent only supports discrete action spaces")
@@ -73,8 +73,8 @@ def rollout(env):
             break
         while human_sets_pause:
             env.render()
-            time.sleep(0.05)
-        time.sleep(0.05)
+            time.sleep(0.001)
+        time.sleep(0.001)
     print("timesteps %i reward %0.2f" % (total_timesteps, total_reward))
 
 

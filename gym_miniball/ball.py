@@ -12,39 +12,85 @@ from gym.utils import seeding
 𝛑 = math.pi
 
 NUM_ACTIONS = 3
-SCREEN_WIDTH = 100
-SCREEN_HEIGHT = 100
+
+SCREEN_WIDTH = 64  # 500
+SCREEN_HEIGHT = 64  # 500
+SPEED = 0.01
+INTERNAL = 100
+VISIBLE = False
+
+# If playing as a person, reset these values for better graphics.
+if VISIBLE:
+    SCREEN_WIDTH = 500
+    SCREEN_HEIGHT = 500
+    SPEED = 1
+    INTERNAL = 1
+
 WIDTH = 64
 HEIGHT = 64
 CHANNELS = 3
 
-VISIBLE = True
-SPEED = 0.02
-INTERNAL = 100
 VARIANCE = 4
 PLAYER_SPEED = 0.75 * SPEED
 BALL_SPEED = 1 * SPEED
 MAX_BALL_SPEED = 1.5 * SPEED
+MIN_BALL_SPEED = 0.75 * SPEED
 
 BOTTOM_DANGER = True
 DEFAULT_CONFIG = {
-    "MiniBall-v1": {
+    "MiniBall1-v0": {
+        "grid": {"height": 64, "width": 64},
+        "player": {"y": 5, "length": 8},
+        "balls": {"number": 1, "quadrant": "3",},
+        "platform": {"number": 1, "quadrant": "1",},
+    },
+    "MiniBall2-v0": {
+        "grid": {"height": 64, "width": 64},
+        "player": {"y": 5, "length": 8},
+        "balls": {"number": 1, "quadrant": "3",},
+        "platform": {"number": 1, "quadrant": "2",},
+    },
+    "MiniBall3-v0": {
+        "grid": {"height": 64, "width": 64},
+        "player": {"y": 5, "length": 8},
+        "balls": {"number": 1, "quadrant": "3",},
+        "platform": {"number": 1, "quadrant": "3",},
+    },
+    "MiniBall4-v0": {
+        "grid": {"height": 64, "width": 64},
+        "player": {"y": 5, "length": 8},
+        "balls": {"number": 1, "quadrant": "3",},
+        "platform": {"number": 1, "quadrant": "4",},
+    },
+    "MiniBall5-v0": {
         "grid": {"height": 64, "width": 64},
         "player": {"y": 5, "length": 8},
         "balls": {"number": 1, "quadrant": "3",},
         "platform": {"number": 1, "quadrant": "5",},
+    },
+    "MiniBall6-v0": {
+        "grid": {"height": 64, "width": 64},
+        "player": {"y": 5, "length": 8},
+        "balls": {"number": 1, "quadrant": "3",},
+        "platform": {"number": 1, "quadrant": "6",},
+    },
+    "MiniBall7-v0": {
+        "grid": {"height": 64, "width": 64},
+        "player": {"y": 5, "length": 8},
+        "balls": {"number": 1, "quadrant": "3",},
+        "platform": {"number": 1, "quadrant": "7",},
+    },
+    "MiniBall8-v0": {
+        "grid": {"height": 64, "width": 64},
+        "player": {"y": 5, "length": 8},
+        "balls": {"number": 1, "quadrant": "3",},
+        "platform": {"number": 1, "quadrant": "8",},
     },
     "MiniBall-v2": {
         "grid": {"height": 64, "width": 64},
         "player": {"y": 5, "length": 8},
         "balls": {"number": 2, "quadrant": "3",},
         "platform": {"number": 2, "quadrant": "5",},
-    },
-    "MiniBall-v1-test": {
-        "grid": {"height": 64, "width": 64},
-        "player": {"y": 5, "length": 8},
-        "balls": {"number": 1, "quadrant": "3",},
-        "platform": {"number": 1, "quadrant": "1",},
     },
 }
 
@@ -60,7 +106,7 @@ class Ball:
     v: float
     direction: float
     color: tuple = (0.1, 0.1, 0.1)  # r, b, g
-    radius: int = 1
+    radius: int = 2
     t: int = 0
 
     def draw(self, viewer):
@@ -119,6 +165,7 @@ class Ball:
         if not at_boundary:
             self.x = n_x
             self.y = n_y
+            self.v = max(0.999 * self.v, MIN_BALL_SPEED)
         else:
             self.v = max(1.01 * self.v, MAX_BALL_SPEED)
             # If we're playing for keeps, the bottom is dangerous!
@@ -181,7 +228,7 @@ class PlayerPlatform:
 class BallEnv(core.Env):
     metadata = {"render.modes": ["human", "rgb_array"], "video.frames_per_second": 2500}
 
-    def __init__(self, config_name="MiniBall-v1"):
+    def __init__(self, config_name):
         internal_steps = INTERNAL
         visible = VISIBLE
 
@@ -221,7 +268,7 @@ class BallEnv(core.Env):
         self.items, self.platforms, self.player_platform = generate_items(
             DEFAULT_CONFIG[self.config_name]
         )
-        return self.step(0)
+        return self.step(0)[0]
 
     def step(self, action):
         if action == BOOST_LEFT_ACTION:
@@ -231,7 +278,7 @@ class BallEnv(core.Env):
             self.player_platform.v = PLAYER_SPEED
             self.player_platform.direction = 0
         elif action == SKIP_ACTION:
-            pass
+            self.player_platform.v = 0.75 * self.player_platform.v
 
         done = False
         for _ in range(self.internal_steps):
@@ -252,7 +299,7 @@ class BallEnv(core.Env):
 
         observation = self.viewer.render(return_rgb_array=True)
         reward = 1 if not done else 0
-        return observation, reward, done, {}
+        return observation.copy(), reward, done, {}
 
 
 def reflect_boundary_function(n_x_loc, n_y_loc, item):
@@ -300,11 +347,20 @@ def intersects(a, b):
 
 
 def get_random_location(partition, width, height, delta=2):
+    """
+    ---------
+    | 1 | 2 |
+    | 3 | 4 |
+    | 5 | 6 |
+    | 7 | 8 |
+    ---------
+    """
+
     if partition == "1":
-        x_left, x_right = width / 2, width
+        x_left, x_right = 0, width / 2
         y_bot, y_top = height * 3 / 4, height
     elif partition == "2":
-        x_left, x_right = 0, width / 2
+        x_left, x_right = width / 2, width
         y_bot, y_top = height * 3 / 4, height
     elif partition == "3":
         x_left, x_right = 0, width / 2
@@ -313,11 +369,17 @@ def get_random_location(partition, width, height, delta=2):
         x_left, x_right = width / 2, width
         y_bot, y_top = height / 2, height * 3 / 4
     elif partition == "5":
-        x_left, x_right = width / 2, width
-        y_bot, y_top = height * 1 / 4, height * 1 / 2
-    elif partition == "6":
         x_left, x_right = 0, width / 2
         y_bot, y_top = height * 1 / 4, height * 1 / 2
+    elif partition == "6":
+        x_left, x_right = width / 2, width
+        y_bot, y_top = height * 1 / 4, height * 1 / 2
+    elif partition == "7":
+        x_left, x_right = 0, width / 2
+        y_bot, y_top = 0, height * 1 / 4
+    elif partition == "8":
+        x_left, x_right = width / 2, width
+        y_bot, y_top = 0, height * 1 / 4
 
     x = np.clip(
         np.random.normal((x_left + x_right) / 2, VARIANCE),
@@ -370,11 +432,43 @@ def generate_items(config):
     return items, platforms, player_platform
 
 
-class BallEnv1Test(BallEnv):
+class BallEnv1(BallEnv):
     def __init__(self):
-        super().__init__(config_name="MiniBall-v1-test")
+        super().__init__(config_name="MiniBall1-v0")
 
 
 class BallEnv2(BallEnv):
     def __init__(self):
-        super().__init__(config_name="MiniBall-v2")
+        super().__init__(config_name="MiniBall2-v0")
+
+
+class BallEnv3(BallEnv):
+    def __init__(self):
+        super().__init__(config_name="MiniBall3-v0")
+        print("Warning, ball and platform may overlap.")
+
+
+class BallEnv4(BallEnv):
+    def __init__(self):
+        super().__init__(config_name="MiniBall4-v0")
+
+
+class BallEnv5(BallEnv):
+    def __init__(self):
+        super().__init__(config_name="MiniBall5-v0")
+
+
+class BallEnv6(BallEnv):
+    def __init__(self):
+        super().__init__(config_name="MiniBall6-v0")
+
+
+class BallEnv7(BallEnv):
+    def __init__(self):
+        super().__init__(config_name="MiniBall7-v0")
+
+
+class BallEnv8(BallEnv):
+    def __init__(self):
+        super().__init__(config_name="MiniBall8-v0")
+
