@@ -3,11 +3,10 @@ import math
 
 import numpy as np
 
-from gym.envs.classic_control import rendering
+# from gym.envs.classic_control import rendering
 from gym import core, spaces
 from gym.utils import seeding
 
-from pyglet.gl import *
 import cv2 as cv
 
 NUM_ACTIONS = 3
