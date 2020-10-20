@@ -4,6 +4,7 @@ import sys, gym, time
 # https://github.com/openai/gym/blob/master/examples/agents/keyboard_agent.py
 import gym
 import gym_miniball
+import cv2 as cv
 
 env = gym.make("MiniBall4-v0")
 
@@ -39,9 +40,24 @@ def key_release(key, mod):
         human_agent_action = 0
 
 
-env.render()
-env.viewer.window.on_key_press = key_press
-env.viewer.window.on_key_release = key_release
+env.render("human")
+# env.viewer.viewer.window.on_key_press = key_press
+# env.viewer.viewer.window.on_key_release = key_release
+
+a = 0
+policy_steps = 20
+
+
+def policy(a):
+    global policy_steps
+    import random
+
+    if policy_steps == 0:
+        policy_steps = random.randint(15, 25)
+        a = random.choice([0, 1, 2])
+    else:
+        policy_steps -= 1
+    return a
 
 
 def rollout(env):
@@ -52,29 +68,35 @@ def rollout(env):
     total_reward = 0
     total_timesteps = 0
     env.render()
+    i = 0
+    a = 0
     while 1:
-        if not skip:
-            # print("taking action {}".format(human_agent_action))
-            a = human_agent_action
-            total_timesteps += 1
-            skip = SKIP_CONTROL
-        else:
-            skip -= 1
+        # key = cv.waitKey(1)
+        a = policy(a)
+        i += 1
+        # if key > -1:
+        #     a = int(key - ord("0"))
+        #     if a <= 0 or a >= ACTIONS:
+        #         a = 0
+        #     human_agent_action = a
+        # else:
+        #     a = 0
+
+        # if not skip:
+        #     # print("taking action {}".format(human_agent_action))
+        #     a = human_agent_action
+        #     total_timesteps += 1
+        #     skip = SKIP_CONTROL
+        # else:
+        #     skip -= 1
 
         obser, r, done, info = env.step(a)
+        env.render()
 
         total_reward += r
-        if r > 0:
-            print(f"reward: {r}, return: {total_reward}")
-        window_still_open = env.render()
-        if window_still_open == False:
-            return False
         if done:
             break
-        if human_wants_restart:
-            break
-            time.sleep(0.001)
-        time.sleep(0.001)
+    print(f"timesteps {i}")
     print("timesteps %i reward %0.2f" % (total_timesteps, total_reward))
     if total_reward == 10_000:
         print("max score!")
@@ -85,7 +107,5 @@ print("Press keys 1 2 3 ... to take actions 1 2 3 ...")
 print("No keys pressed is taking action 0")
 
 while 1:
-    window_still_open = rollout(env)
-    if window_still_open == False:
-        break
+    rollout(env)
 

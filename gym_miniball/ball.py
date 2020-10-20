@@ -7,6 +7,8 @@ from gym.envs.classic_control import rendering
 from gym import core, spaces
 from gym.utils import seeding
 
+from pyglet.gl import *
+import cv2 as cv
 
 NUM_ACTIONS = 3
 
@@ -92,21 +94,72 @@ BOOST_RIGHT_ACTION = 2
 𝛑 = math.pi
 
 
+class OpenCvViewer:
+    def __init__(self, height, width):
+        self.height = height
+        self.width = width
+        self.display = np.zeros((height, width, 3), dtype=np.float32)
+        self.viewer = None
+        self.scale = 1
+
+    def set_bounds(self, scale):
+        pass
+        # self.scale = scale
+        # # self.scale = SCREEN_WIDTH // WIDTH
+        # self.display = np.zeros(
+        #     (self.height * self.scale, self.width * self.scale, 3), dtype=np.float32
+        # )
+
+    def clear(self):
+        self.display.fill(255)
+
+    def draw_circle(self, x, y, radius, color):
+        thickness = -1  # fill-in the circle
+        center_coordinates = (np.float32(x), np.float32(y))
+        linestyle = cv.LINE_AA
+        cv.circle(self.display, center_coordinates, radius, color, thickness, linestyle)
+
+    def draw_rectangle(self, x, y, width, height, color):
+        l, r, b, t = (x - width / 2, x + width / 2, y - height / 2, y + height / 2)
+        cv.rectangle(
+            self.display,
+            pt1=(np.float32(l), np.float32(b)),
+            pt2=(np.float32(r), np.float32(t)),
+            color=color,
+            thickness=-1,
+        )
+
+    def render(self, mode="human"):
+        if mode == "human":
+            # if self.viewer is None:
+            #     self.viewer = rendering.SimpleImageViewer()
+            # self.viewer.imshow(self.display[:, :, ::-1])
+            cv.imshow("display", cv.flip(self.display, 0))
+            cv.waitKey(1)
+        return self.display
+
+    def close(self):
+        # if self.viewer is not None:
+        #     self.viewer.close()
+        cv.destroyAllWindows()
+
+
 @dataclasses.dataclass
 class Ball:
     x: float
     y: float
     v: float
     direction: float
-    color: tuple = (0.1, 0.1, 0.1)  # r, b, g
+    color: tuple = (0, 0, 255)  # BGR
     radius: int = 2
     t: int = 0
 
     def draw(self, viewer):
-        transform = rendering.Transform(translation=(self.x, self.y))
-        circ = viewer.draw_circle(self.radius)
-        circ.set_color(*self.color)
-        circ.add_attr(transform)
+        # transform = rendering.Transform(translation=(self.x, self.y))
+        # circ = viewer.draw_circle(self.radius)
+        # circ.set_color(*self.color)
+        # circ.add_attr(transform)
+        viewer.draw_circle(self.x, self.y, radius=self.radius, color=self.color)
 
     def step(self, platforms, player_platform):
         n_x, n_y = movement_function(self)
@@ -120,10 +173,10 @@ class Ball:
 
                 # First, we check if we hit a corner.
                 l, r, t, b = (
-                    p.x + -p.length / 2,
-                    p.x + p.length / 2,
-                    p.y + p.width / 2,
-                    p.y + -p.width / 2,
+                    p.x + -p.width / 2,
+                    p.x + p.width / 2,
+                    p.y + p.height / 2,
+                    p.y + -p.height / 2,
                 )
                 corners = [(l, b), (l, t), (r, t), (r, b)]
                 for point in corners:
@@ -149,13 +202,13 @@ class Ball:
                 if not finished:
                     if intersects_player:
                         delta = (player_platform.x - self.x) / (
-                            player_platform.length / 2
+                            player_platform.width / 2
                         )
                         self.direction = (𝛕 - self.direction - delta) % 𝛕
                     else:
                         # Top / bot side.
-                        if (p.x - p.length / 2 <= self.x) and (
-                            self.x <= p.x + p.length / 2
+                        if (p.x - p.width / 2 <= self.x) and (
+                            self.x <= p.x + p.width / 2
                         ):
                             self.direction = (𝛕 - self.direction) % 𝛕
                         # Left / right side
@@ -186,17 +239,18 @@ class Platform:
     y: float
     v: float
     direction: float
-    color: tuple = (0.8, 0.8, 0.8)  # r, b, g
-    length: int = 16
-    width: int = 4
+    color: tuple = (0, 0, 255)  # BGR
+    width: int = 16
+    height: int = 4
     t: int = 0
 
     def draw(self, viewer):
-        transform = rendering.Transform(translation=(self.x, self.y))
-        l, r, t, b = -self.length / 2, self.length / 2, self.width / 2, -self.width / 2
-        poly = viewer.draw_polygon([(l, b), (l, t), (r, t), (r, b)])
-        poly.set_color(*self.color)
-        poly.add_attr(transform)
+        viewer.draw_rectangle(self.x, self.y, self.width, self.height, color=self.color)
+        # transform = rendering.Transform(translation=(self.x, self.y))
+        # l, r, t, b = -self.width / 2, self.width / 2, self.width / 2, -self.width / 2
+        # poly = viewer.draw_polygon([(l, b), (l, t), (r, t), (r, b)])
+        # poly.set_color(*self.color)
+        # poly.add_attr(transform)
 
     def step(self):
         pass
@@ -208,17 +262,18 @@ class PlayerPlatform:
     y: float
     v: float
     direction: float
-    color: tuple = (0.8, 0.2, 0.2)  # r, b, g
-    length: int = 16
-    width: int = 1
+    color: tuple = (0, 0, 255)  # BGR
+    width: int = 16
+    height: int = 2
     t: int = 0
 
     def draw(self, viewer):
-        transform = rendering.Transform(translation=(self.x, self.y))
-        l, r, t, b = -self.length / 2, self.length / 2, self.width / 2, -self.width / 2
-        poly = viewer.draw_polygon([(l, b), (l, t), (r, t), (r, b)])
-        poly.set_color(*self.color)
-        poly.add_attr(transform)
+        viewer.draw_rectangle(self.x, self.y, self.width, self.height, color=self.color)
+        # transform = rendering.Transform(translation=(self.x, self.y))
+        # l, r, t, b = -self.width / 2, self.width / 2, self.width / 2, -self.width / 2
+        # poly = viewer.draw_polygon([(l, b), (l, t), (r, t), (r, b)])
+        # poly.set_color(*self.color)
+        # poly.add_attr(transform)
 
     def step(self, items):
         n_x = self.x + self.v * math.cos(self.direction)
@@ -227,12 +282,12 @@ class PlayerPlatform:
         for i in items:
             # This makes it so the ball can't get stuck within the platform.
             if item_intersects_platform(
-                i.x, i.y, n_x, n_y, i.radius, self.length, self.width
+                i.x, i.y, n_x, n_y, i.radius, self.width, self.height
             ):
                 self.v = 0
                 return
 
-        if (n_x - (self.length / 2) <= 0) or (n_x + (self.length / 2) >= WIDTH):
+        if (n_x - (self.width / 2) <= 0) or (n_x + (self.width / 2) >= WIDTH):
             self.direction = (3 * 𝛑 - self.direction) % 𝛕
         else:
             self.x = n_x
@@ -241,11 +296,12 @@ class PlayerPlatform:
 class BallEnv(core.Env):
     metadata = {"render.modes": ["human", "rgb_array"], "video.frames_per_second": 2500}
 
-    def __init__(self, config_name):
+    def __init__(self, config_name, mode="rgb_array"):
         internal_steps = INTERNAL
         visible = VISIBLE
+        self.mode = mode
 
-        self.viewer = None
+        self.viewer = OpenCvViewer(HEIGHT, WIDTH)
         self.internal_steps = internal_steps
         self.observation_space = spaces.Box(
             low=0, high=256, shape=(WIDTH, HEIGHT, CHANNELS), dtype=np.float32
@@ -262,15 +318,8 @@ class BallEnv(core.Env):
         )
 
     def render(self, mode):
-        if mode == "human":
-            self.visible = True
-            SCREEN_HEIGHT, SCREEN_WIDTH = 500, 500
-        else:
-            self.visible = False
-        if self.viewer is None:
-            self.viewer = rendering.Viewer(SCREEN_HEIGHT, SCREEN_WIDTH)
-            self.viewer.set_bounds(0, WIDTH, 0, HEIGHT)
-        self.viewer.window.set_visible(self.visible)
+        self.viewer.render(mode)
+        # self.viewer.window.set_visible(self.visible)
 
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
@@ -307,17 +356,22 @@ class BallEnv(core.Env):
                 done |= i.step(self.platforms, self.player_platform)
 
         if self.viewer is None:
-            self.viewer = rendering.Viewer(SCREEN_HEIGHT, SCREEN_WIDTH)
-            self.viewer.set_bounds(0, WIDTH, 0, HEIGHT)
-        self.viewer.window.set_visible(self.visible)
+            # self.viewer = rendering.Viewer(SCREEN_HEIGHT, SCREEN_WIDTH)
+            # self.viewer.set_bounds(0, WIDTH, 0, HEIGHT)
+            self.viewer = OpenCvViewer(SCREEN_HEIGHT, SCREEN_WIDTH)
+            # self.viewer.set_bounds(0, WIDTH, 0, HEIGHT)
+        # self.viewer.window.set_visible(self.visible)
 
+        self.viewer.clear()
         for i in self.items:
             i.draw(self.viewer)
         for i in self.platforms:
             i.draw(self.viewer)
+
         reward = 1 if not done else -1
-        observation = self.viewer.render(return_rgb_array=True)
-        return observation.copy(), reward, done, {}
+
+        obs = self.viewer.display
+        return obs.copy(), reward, done, {}
 
 
 def reflect_boundary_function(n_x_loc, n_y_loc, item):
@@ -338,7 +392,7 @@ def propel_boundary_function(n_x_loc, n_y_loc, item):
         # prevent for-ever bouncing.
         updown = 1 if np.sin(item.direction) > 0 else -1
         if abs(item.direction - 0) < 0.15 or abs(item.direction - 𝛑) < 0.15:
-            item.direction += 0.15 * updown
+            item.direction += 0.25 * updown
 
         return True
     elif (n_y_loc - item.radius <= 0) or (n_y_loc + item.radius >= HEIGHT):
@@ -352,12 +406,12 @@ def intersects_platform(n_x, n_y, radius, platform):
     item_x_boundary = n_x - radius, n_x + radius
     item_y_boundary = n_y - radius, n_y + radius
     platform_x_boundary = (
-        platform.x - platform.length / 2,
-        platform.x + platform.length / 2,
+        platform.x - platform.width / 2,
+        platform.x + platform.width / 2,
     )
     platform_y_boundary = (
-        platform.y - platform.width / 2,
-        platform.y + platform.width / 2,
+        platform.y - platform.height / 2,
+        platform.y + platform.height / 2,
     )
     if intersects(item_x_boundary, platform_x_boundary) and intersects(
         item_y_boundary, platform_y_boundary
@@ -367,17 +421,17 @@ def intersects_platform(n_x, n_y, radius, platform):
 
 
 def item_intersects_platform(
-    n_x, n_y, p_x, p_y, radius, platform_length, platform_width
+    n_x, n_y, p_x, p_y, radius, platform_width, platform_height
 ):
     item_x_boundary = n_x - radius, n_x + radius
     item_y_boundary = n_y - radius, n_y + radius
     platform_x_boundary = (
-        p_x - platform_length / 2,
-        p_x + platform_length / 2,
+        p_x - platform_width / 2,
+        p_x + platform_width / 2,
     )
     platform_y_boundary = (
-        p_y - platform_width / 2,
-        p_y + platform_width / 2,
+        p_y - platform_height / 2,
+        p_y + platform_height / 2,
     )
     if intersects(item_x_boundary, platform_x_boundary) and intersects(
         item_y_boundary, platform_y_boundary
@@ -473,7 +527,7 @@ def generate_items(config):
         player_config["y"],
         0,
         direction,
-        length=player_config["length"],
+        width=player_config["length"],
     )
 
     balls_config = config["balls"]
