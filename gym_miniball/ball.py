@@ -6,8 +6,10 @@ import numpy as np
 # from gym.envs.classic_control import rendering
 from gym import core, spaces
 from gym.utils import seeding
-
 import cv2 as cv
+
+# import time
+# import pygame
 
 NUM_ACTIONS = 3
 
@@ -29,6 +31,12 @@ MIN_BALL_SPEED = 0.75 * SPEED
 
 BOTTOM_DANGER = True
 DEFAULT_CONFIG = {
+    "MiniBall0-v0": {
+        "grid": {"height": 64, "width": 64},
+        "player": {"y": 5, "length": 12},
+        "balls": {"number": 1, "quadrant": "3",},
+        "platform": {"number": 0, "quadrant": "1",},
+    },
     "MiniBall1-v0": {
         "grid": {"height": 64, "width": 64},
         "player": {"y": 5, "length": 12},
@@ -101,14 +109,6 @@ class OpenCvViewer:
         self.viewer = None
         self.scale = 1
 
-    def set_bounds(self, scale):
-        pass
-        # self.scale = scale
-        # # self.scale = SCREEN_WIDTH // WIDTH
-        # self.display = np.zeros(
-        #     (self.height * self.scale, self.width * self.scale, 3), dtype=np.float32
-        # )
-
     def clear(self):
         self.display.fill(255)
 
@@ -133,6 +133,13 @@ class OpenCvViewer:
             # if self.viewer is None:
             #     self.viewer = rendering.SimpleImageViewer()
             # self.viewer.imshow(self.display[:, :, ::-1])
+            # if self.viewer is None:
+            #     pygame.init()
+            #     self.viewer = pygame.display.set_mode(self.display.shape[:2])
+            # pygame.surfarray.blit_array(self.viewer, self.display)
+            # pygame.display.flip()
+            # print("hello")
+            # time.sleep(100)
             cv.imshow("display", cv.flip(self.display, 0))
             cv.waitKey(1)
         return self.display
@@ -546,6 +553,11 @@ def generate_items(config):
     platforms.append(player_platform)
 
     return items, platforms, player_platform
+
+
+class BallEnv0(BallEnv):
+    def __init__(self):
+        super().__init__(config_name="MiniBall0-v0")
 
 
 class BallEnv1(BallEnv):

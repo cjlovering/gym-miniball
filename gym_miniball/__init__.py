@@ -1,4 +1,5 @@
 from .ball import (
+    BallEnv0,
     BallEnv1,
     BallEnv2,
     BallEnv3,
@@ -13,6 +14,14 @@ from gym.envs.registration import register
 
 reward_threshold = 5000
 max_episode_steps = 5000
+
+register(
+    id="MiniBall0-v0",
+    entry_point="gym_miniball:BallEnv0",
+    max_episode_steps=max_episode_steps,
+    reward_threshold=reward_threshold,
+)
+
 register(
     id="MiniBall1-v0",
     entry_point="gym_miniball:BallEnv1",

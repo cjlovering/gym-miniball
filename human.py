@@ -6,7 +6,7 @@ import gym
 import gym_miniball
 import cv2 as cv
 
-env = gym.make("MiniBall4-v0")
+env = gym.make("MiniBall0-v0")
 
 if not hasattr(env.action_space, "n"):
     raise Exception("Keyboard agent only supports discrete action spaces")
