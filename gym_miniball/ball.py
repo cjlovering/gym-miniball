@@ -107,7 +107,7 @@ class OpenCvViewer:
     def __init__(self, height, width):
         self.height = height
         self.width = width
-        self.display = np.zeros((height, width, 3), dtype=np.float32)
+        self.display = np.zeros((height, width, 1), dtype=np.float32)
         self.viewer = None
 
     def clear(self):
