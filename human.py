@@ -102,6 +102,8 @@ def rollout(env):
         print("max score!")
 
 
+print("Broken. Use `manual.py` for now.")
+exit()
 print(f"ACTIONS={ACTIONS}")
 print("Press keys 1 2 3 ... to take actions 1 2 3 ...")
 print("No keys pressed is taking action 0")

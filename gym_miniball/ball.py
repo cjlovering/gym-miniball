@@ -13,81 +13,83 @@ import cv2 as cv
 
 NUM_ACTIONS = 3
 
-SCREEN_WIDTH = 64  # 500
-SCREEN_HEIGHT = 64  # 500
-SPEED = 0.015
+SCREEN_WIDTH = 16  # 500
+SCREEN_HEIGHT = 16  # 500
+SPEED = 0.01
 INTERNAL = 75
 VISIBLE = False
 
-WIDTH = 64
-HEIGHT = 64
-CHANNELS = 3
+WIDTH = 16
+HEIGHT = 16
+CHANNELS = 1
 
-VARIANCE = 4
-PLAYER_SPEED = 0.75 * SPEED
+VARIANCE = 0.5
+PLAYER_SPEED = 1 * SPEED
 BALL_SPEED = 1.0 * SPEED
 MAX_BALL_SPEED = 1.5 * SPEED
 MIN_BALL_SPEED = 0.75 * SPEED
 
+PLAYER = 4
+
 BOTTOM_DANGER = True
 DEFAULT_CONFIG = {
     "MiniBall0-v0": {
-        "grid": {"height": 64, "width": 64},
-        "player": {"y": 5, "length": 12},
+        "grid": {"height": HEIGHT, "width": WIDTH},
+        "player": {"y": 5, "length": PLAYER},
         "balls": {"number": 1, "quadrant": "3",},
         "platform": {"number": 0, "quadrant": "1",},
     },
     "MiniBall1-v0": {
-        "grid": {"height": 64, "width": 64},
-        "player": {"y": 5, "length": 12},
+        "grid": {"height": HEIGHT, "width": WIDTH},
+        "player": {"y": 5, "length": PLAYER},
         "balls": {"number": 1, "quadrant": "3",},
         "platform": {"number": 1, "quadrant": "1",},
     },
     "MiniBall2-v0": {
-        "grid": {"height": 64, "width": 64},
-        "player": {"y": 5, "length": 12},
+        "grid": {"height": HEIGHT, "width": WIDTH},
+        "player": {"y": 5, "length": PLAYER},
         "balls": {"number": 1, "quadrant": "3",},
         "platform": {"number": 1, "quadrant": "2",},
     },
     "MiniBall3-v0": {
-        "grid": {"height": 64, "width": 64},
-        "player": {"y": 5, "length": 12},
+        "grid": {"height": HEIGHT, "width": WIDTH},
+        "player": {"y": 5, "length": PLAYER},
         "balls": {"number": 1, "quadrant": "4",},
         "platform": {"number": 1, "quadrant": "3",},
     },
     "MiniBall4-v0": {
-        "grid": {"height": 64, "width": 64},
-        "player": {"y": 5, "length": 12},
+        "grid": {"height": HEIGHT, "width": WIDTH},
+        "player": {"y": 5, "length": PLAYER},
         "balls": {"number": 1, "quadrant": "3",},
         "platform": {"number": 1, "quadrant": "4",},
     },
     "MiniBall5-v0": {
-        "grid": {"height": 64, "width": 64},
-        "player": {"y": 5, "length": 12},
+        "grid": {"height": HEIGHT, "width": WIDTH},
+        "player": {"y": 5, "length": PLAYER},
         "balls": {"number": 1, "quadrant": "3",},
         "platform": {"number": 1, "quadrant": "5",},
     },
     "MiniBall6-v0": {
-        "grid": {"height": 64, "width": 64},
-        "player": {"y": 5, "length": 12},
+        "grid": {"height": HEIGHT, "width": WIDTH},
+        "player": {"y": 5, "length": PLAYER},
         "balls": {"number": 1, "quadrant": "3",},
         "platform": {"number": 1, "quadrant": "6",},
     },
     "MiniBall7-v0": {
-        "grid": {"height": 64, "width": 64},
-        "player": {"y": 5, "length": 12},
+        "grid": {"height": HEIGHT, "width": WIDTH},
+        "player": {"y": 5, "length": PLAYER},
         "balls": {"number": 1, "quadrant": "3",},
         "platform": {"number": 1, "quadrant": "7",},
     },
     "MiniBall8-v0": {
-        "grid": {"height": 64, "width": 64},
-        "player": {"y": 5, "length": 12},
+        "grid": {"height": HEIGHT, "width": WIDTH},
+        "player": {"y": 5, "length": PLAYER},
         "balls": {"number": 1, "quadrant": "3",},
         "platform": {"number": 1, "quadrant": "8",},
     },
     "MiniBall-v2": {
-        "grid": {"height": 64, "width": 64},
-        "player": {"y": 5, "length": 12},
+        "grid": {"height": HEIGHT, "width": WIDTH},
+        "player": {"y": 5, "length": PLAYER},
         "balls": {"number": 2, "quadrant": "3",},
         "platform": {"number": 2, "quadrant": "5",},
     },
@@ -107,16 +109,14 @@ class OpenCvViewer:
         self.width = width
         self.display = np.zeros((height, width, 3), dtype=np.float32)
         self.viewer = None
-        self.scale = 1
 
     def clear(self):
         self.display.fill(255)
 
     def draw_circle(self, x, y, radius, color):
-        thickness = -1  # fill-in the circle
-        center_coordinates = (np.float32(x), np.float32(y))
-        linestyle = cv.LINE_AA
-        cv.circle(self.display, center_coordinates, radius, color, thickness, linestyle)
+        cv.circle(
+            self.display, (np.float32(x), np.float32(y)), radius, color, -1, cv.LINE_AA
+        )
 
     def draw_rectangle(self, x, y, width, height, color):
         l, r, b, t = (x - width / 2, x + width / 2, y - height / 2, y + height / 2)
@@ -129,24 +129,9 @@ class OpenCvViewer:
         )
 
     def render(self, mode="human"):
-        if mode == "human":
-            # if self.viewer is None:
-            #     self.viewer = rendering.SimpleImageViewer()
-            # self.viewer.imshow(self.display[:, :, ::-1])
-            # if self.viewer is None:
-            #     pygame.init()
-            #     self.viewer = pygame.display.set_mode(self.display.shape[:2])
-            # pygame.surfarray.blit_array(self.viewer, self.display)
-            # pygame.display.flip()
-            # print("hello")
-            # time.sleep(100)
-            cv.imshow("display", cv.flip(self.display, 0))
-            cv.waitKey(1)
         return self.display
 
     def close(self):
-        # if self.viewer is not None:
-        #     self.viewer.close()
         cv.destroyAllWindows()
 
 
@@ -156,9 +141,10 @@ class Ball:
     y: float
     v: float
     direction: float
-    color: tuple = (0, 0, 255)  # BGR
-    radius: int = 2
+    color: tuple = 1  # (0, 0, 255)  # BGR
+    radius: int = 1
     t: int = 0
+    was_at_boundary: bool = False
 
     def draw(self, viewer):
         # transform = rendering.Transform(translation=(self.x, self.y))
@@ -228,12 +214,17 @@ class Ball:
             self.x = n_x
             self.y = n_y
             self.v = max(0.999 * self.v, MIN_BALL_SPEED)
+            self.was_at_boundary = False
         else:
             self.v = min(1.01 * self.v, MAX_BALL_SPEED)
             # If we're playing for keeps, the bottom is dangerous!
             if BOTTOM_DANGER:
                 if n_y - self.radius <= 0:
                     return True
+            if self.was_at_boundary:
+                # game stuck
+                return True
+            self.was_at_boundary = True
 
         # All is well.
         return False
@@ -245,9 +236,9 @@ class Platform:
     y: float
     v: float
     direction: float
-    color: tuple = (0, 0, 255)  # BGR
-    width: int = 16
-    height: int = 4
+    color: tuple = 1  # (0, 0, 255)  # BGR
+    width: int = 8
+    height: int = 1
     t: int = 0
 
     def draw(self, viewer):
@@ -268,9 +259,9 @@ class PlayerPlatform:
     y: float
     v: float
     direction: float
-    color: tuple = (0, 0, 255)  # BGR
+    color: tuple = 1  # (0, 0, 255)  # BGR
     width: int = 16
-    height: int = 2
+    height: int = 1
     t: int = 0
 
     def draw(self, viewer):
@@ -324,8 +315,7 @@ class BallEnv(core.Env):
         )
 
     def render(self, mode):
-        self.viewer.render(mode)
-        # self.viewer.window.set_visible(self.visible)
+        return self.viewer.render(mode)
 
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
@@ -343,6 +333,7 @@ class BallEnv(core.Env):
         return self.step(0)[0]
 
     def step(self, action):
+        # before_obs = self.viewer.display
         if action == BOOST_LEFT_ACTION:
             self.player_platform.v = PLAYER_SPEED
             self.player_platform.direction = 𝛑
@@ -361,13 +352,6 @@ class BallEnv(core.Env):
             for i in self.items:
                 done |= i.step(self.platforms, self.player_platform)
 
-        if self.viewer is None:
-            # self.viewer = rendering.Viewer(SCREEN_HEIGHT, SCREEN_WIDTH)
-            # self.viewer.set_bounds(0, WIDTH, 0, HEIGHT)
-            self.viewer = OpenCvViewer(SCREEN_HEIGHT, SCREEN_WIDTH)
-            # self.viewer.set_bounds(0, WIDTH, 0, HEIGHT)
-        # self.viewer.window.set_visible(self.visible)
-
         self.viewer.clear()
         for i in self.items:
             i.draw(self.viewer)
@@ -375,7 +359,6 @@ class BallEnv(core.Env):
             i.draw(self.viewer)
 
         reward = 1 if not done else -1
-
         obs = self.viewer.display
         return obs.copy(), reward, done, {}
 
