@@ -315,7 +315,7 @@ class BallEnv(core.Env):
         )
 
     def render(self, mode):
-        return self.viewer.render(mode)
+        return self.viewer.render(mode).copy()
 
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
@@ -360,6 +360,7 @@ class BallEnv(core.Env):
 
         reward = 1 if not done else -1
         obs = self.viewer.display
+
         return obs.copy(), reward, done, {}
 
 
