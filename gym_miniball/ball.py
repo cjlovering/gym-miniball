@@ -13,14 +13,14 @@ import cv2 as cv
 
 NUM_ACTIONS = 3
 
-SCREEN_WIDTH = 16  # 500
-SCREEN_HEIGHT = 16  # 500
+SCREEN_WIDTH = 36  # 500
+SCREEN_HEIGHT = 36  # 500
 SPEED = 0.01
-INTERNAL = 50
+INTERNAL = 75
 VISIBLE = False
 
-WIDTH = 16
-HEIGHT = 16
+WIDTH = 36
+HEIGHT = 36
 CHANNELS = 1
 
 VARIANCE = 0.5
@@ -29,7 +29,7 @@ BALL_SPEED = 1.0 * SPEED
 MAX_BALL_SPEED = 1.5 * SPEED
 MIN_BALL_SPEED = 0.75 * SPEED
 
-PLAYER = 4
+PLAYER = 6
 
 BOTTOM_DANGER = True
 DEFAULT_CONFIG = {
@@ -107,7 +107,7 @@ class OpenCvViewer:
     def __init__(self, height, width):
         self.height = height
         self.width = width
-        self.display = np.zeros((height, width, 1), dtype=np.float32)
+        self.display = np.zeros((height, width, 1), dtype=np.uint8)
         self.viewer = None
 
     def clear(self):
@@ -237,7 +237,7 @@ class Platform:
     v: float
     direction: float
     color: tuple = 1  # (0, 0, 255)  # BGR
-    width: int = 8
+    width: int = 12
     height: int = 1
     t: int = 0
 
@@ -301,7 +301,7 @@ class BallEnv(core.Env):
         self.viewer = OpenCvViewer(HEIGHT, WIDTH)
         self.internal_steps = internal_steps
         self.observation_space = spaces.Box(
-            low=0, high=256, shape=(WIDTH, HEIGHT, CHANNELS), dtype=np.float32
+            low=0, high=255, shape=(WIDTH, HEIGHT, CHANNELS), dtype=np.uint8
         )
         self.action_space = spaces.Discrete(NUM_ACTIONS)
         self.state = None
