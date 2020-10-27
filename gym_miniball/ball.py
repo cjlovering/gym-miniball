@@ -15,7 +15,7 @@ NUM_ACTIONS = 3
 
 SCREEN_WIDTH = 36  # 500
 SCREEN_HEIGHT = 36  # 500
-SPEED = 0.01
+SPEED = 0.04
 INTERNAL = 75
 VISIBLE = False
 
@@ -144,7 +144,7 @@ class Ball:
     color: tuple = 1  # (0, 0, 255)  # BGR
     radius: int = 1
     t: int = 0
-    was_at_boundary: bool = False
+    was_at_boundary: int = 0
 
     def draw(self, viewer):
         # transform = rendering.Transform(translation=(self.x, self.y))
@@ -214,17 +214,17 @@ class Ball:
             self.x = n_x
             self.y = n_y
             self.v = max(0.999 * self.v, MIN_BALL_SPEED)
-            self.was_at_boundary = False
+            self.was_at_boundary = 0
         else:
             self.v = min(1.01 * self.v, MAX_BALL_SPEED)
             # If we're playing for keeps, the bottom is dangerous!
             if BOTTOM_DANGER:
                 if n_y - self.radius <= 0:
                     return True
-            if self.was_at_boundary:
+            if self.was_at_boundary > 10:
                 # game stuck
                 return True
-            self.was_at_boundary = True
+            self.was_at_boundary += 1
 
         # All is well.
         return False
