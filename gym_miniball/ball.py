@@ -87,6 +87,12 @@ DEFAULT_CONFIG = {
         "balls": {"number": 1, "quadrant": "3",},
         "platform": {"number": 1, "quadrant": "8",},
     },
+    "MiniBallStar-v0": {
+        "grid": {"height": HEIGHT, "width": WIDTH},
+        "player": {"y": 5, "length": PLAYER},
+        "balls": {"number": 1, "quadrant": "3",},
+        "platform": {"number": 1, "quadrant": "star",},
+    },
     "MiniBall-v2": {
         "grid": {"height": HEIGHT, "width": WIDTH},
         "player": {"y": 5, "length": PLAYER},
@@ -493,6 +499,14 @@ def get_random_location(quadrant, width, height, variance=VARIANCE):
     elif quadrant == "8":
         x_left, x_right = width / 2, width
         y_bot, y_top = 0, height * 1 / 4
+    elif quadrant == "star":
+        # the ball can appear anywhere on the top portion of the game.
+        x_left, x_right = 0, width
+        y_bot, y_top = height * 1 / 4, height
+        return (
+            np.clip(np.random.uniform(x_left, x_right), x_left, x_right),
+            np.clip(np.random.uniform(x_left, x_right), y_bot, y_top),
+        )
 
     return (
         np.clip(np.random.normal((x_left + x_right) / 2, variance), x_left, x_right),
@@ -589,4 +603,9 @@ class BallEnv7(BallEnv):
 class BallEnv8(BallEnv):
     def __init__(self):
         super().__init__(config_name="MiniBall8-v0")
+
+
+class BallEnvStar(BallEnv):
+    def __init__(self):
+        super().__init__(config_name="MiniBallStar-v0")
 

@@ -8,6 +8,7 @@ from .ball import (
     BallEnv6,
     BallEnv7,
     BallEnv8,
+    BallEnvStar,
 )
 
 from gym.envs.registration import register
@@ -70,3 +71,10 @@ register(
     max_episode_steps=max_episode_steps,
     reward_threshold=reward_threshold,
 )
+register(
+    id="MiniBallStar-v0",
+    entry_point="gym_miniball:BallEnvStar",
+    max_episode_steps=max_episode_steps,
+    reward_threshold=reward_threshold,
+)
+
