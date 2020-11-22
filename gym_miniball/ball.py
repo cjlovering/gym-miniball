@@ -15,8 +15,8 @@ NUM_ACTIONS = 3
 
 SCREEN_WIDTH = 32  # 500
 SCREEN_HEIGHT = 32  # 500
-SPEED = 0.04
-INTERNAL = 75
+SPEED = 0.03
+INTERNAL = 100
 VISIBLE = False
 
 WIDTH = 32
@@ -24,7 +24,7 @@ HEIGHT = 32
 CHANNELS = 1
 
 VARIANCE = 0.5
-PLAYER_SPEED = 0.5 * SPEED
+PLAYER_SPEED = 0.7 * SPEED
 BALL_SPEED = 1.0 * SPEED
 MAX_BALL_SPEED = 1.5 * SPEED
 MIN_BALL_SPEED = 0.75 * SPEED
@@ -158,58 +158,59 @@ class Ball:
         at_boundary = propel_boundary_function(n_x, n_y, self)
         intersects_player = intersects_platform(n_x, n_y, self.radius, player_platform)
 
-        for p in platforms:
-            intersected = intersects_platform(n_x, n_y, self.radius, p)
-            if intersected:
-                finished = False
+        if not at_boundary:
+            for p in platforms:
+                intersected = intersects_platform(n_x, n_y, self.radius, p)
+                if intersected:
+                    finished = False
 
-                # First, we check if we hit a corner.
-                l, r, t, b = (
-                    p.x + -p.width / 2,
-                    p.x + p.width / 2,
-                    p.y + p.height / 2,
-                    p.y + -p.height / 2,
-                )
-                corners = [(l, b), (l, t), (r, t), (r, b)]
-                for point in corners:
-                    # Is the corner inside the circle from the next location?
-                    # This is not perfect logic... it could be true, but it would have hit the side first.
-                    # If our step size was really small, this would be fine...
-                    if point_inside(n_x, n_y, self.radius, point):
-                        # Adopted the logic for handling corners from stackexchange:
-                        # https://gamedev.stackexchange.com/questions/10911/a-ball-hits-the-corner-where-will-it-deflects
-                        ball_dx = math.cos(self.direction)
-                        ball_dy = math.sin(self.direction)
-                        x = self.x - point[0]
-                        y = self.y - point[1]
-                        c = -2 * (ball_dx * x + ball_dy * y) / (x * x + y * y)
-                        ball_dx = ball_dx + c * x
-                        ball_dy = ball_dy + c * y
-                        self.direction = math.atan2(ball_dx, ball_dy)
-                        at_boundary = True
-                        finished = True
-                        break
+                    # First, we check if we hit a corner.
+                    l, r, t, b = (
+                        p.x + -p.width / 2,
+                        p.x + p.width / 2,
+                        p.y + p.height / 2,
+                        p.y + -p.height / 2,
+                    )
+                    corners = [(l, b), (l, t), (r, t), (r, b)]
+                    for point in corners:
+                        # Is the corner inside the circle from the next location?
+                        # This is not perfect logic... it could be true, but it would have hit the side first.
+                        # If our step size was really small, this would be fine...
+                        if point_inside(n_x, n_y, self.radius, point):
+                            # Adopted the logic for handling corners from stackexchange:
+                            # https://gamedev.stackexchange.com/questions/10911/a-ball-hits-the-corner-where-will-it-deflects
+                            ball_dx = math.cos(self.direction)
+                            ball_dy = math.sin(self.direction)
+                            x = self.x - point[0]
+                            y = self.y - point[1]
+                            c = -2 * (ball_dx * x + ball_dy * y) / (x * x + y * y)
+                            ball_dx = ball_dx + c * x
+                            ball_dy = ball_dy + c * y
+                            self.direction = math.atan2(ball_dx, ball_dy)
+                            at_boundary = True
+                            finished = True
+                            break
 
-                # If we did not hit a corner, check if we hit the top/bot or a side.
-                if not finished:
-                    if intersects_player:
-                        delta = (player_platform.x - self.x) / (
-                            player_platform.width / 2
-                        )
-                        self.direction = (𝛕 - self.direction - delta) % 𝛕
-                    else:
-                        # Top / bot side.
-                        if (p.x - p.width / 2 <= self.x) and (
-                            self.x <= p.x + p.width / 2
-                        ):
-                            self.direction = (𝛕 - self.direction) % 𝛕
-                        # Left / right side
+                    # If we did not hit a corner, check if we hit the top/bot or a side.
+                    if not finished:
+                        if intersects_player:
+                            delta = (player_platform.x - self.x) / (
+                                player_platform.width / 2
+                            )
+                            self.direction = (𝛕 - self.direction - delta) % 𝛕
                         else:
-                            self.direction = (3 * 𝛑 - self.direction) % 𝛕
-                at_boundary = True
-                break
+                            # Top / bot side.
+                            if (p.x - p.width / 2 <= self.x) and (
+                                self.x <= p.x + p.width / 2
+                            ):
+                                self.direction = (𝛕 - self.direction) % 𝛕
+                            # Left / right side
+                            else:
+                                self.direction = (3 * 𝛑 - self.direction) % 𝛕
+                    at_boundary = True
+                    break
 
-        # If we're not about to hit something (and thus bounce), move.
+        # If we're not about to hit something move.
         if not at_boundary:
             self.x = n_x
             self.y = n_y
@@ -219,7 +220,7 @@ class Ball:
             self.v = min(1.01 * self.v, MAX_BALL_SPEED)
             # If we're playing for keeps, the bottom is dangerous!
             if BOTTOM_DANGER:
-                if n_y - self.radius <= 0:
+                if n_y - self.radius <= 1:
                     return True
             if self.was_at_boundary > 10:
                 # game stuck
@@ -375,7 +376,7 @@ def reflect_boundary_function(n_x_loc, n_y_loc, item):
 
 
 def propel_boundary_function(n_x_loc, n_y_loc, item):
-    if (n_x_loc - item.radius <= 0) or (n_x_loc + item.radius >= WIDTH):
+    if (n_x_loc - item.radius <= 1) or (n_x_loc + item.radius >= WIDTH - 1):
         delta = (n_y_loc - item.y) / (HEIGHT / 2)
         item.direction = (3 * 𝛑 - item.direction + delta) % 𝛕
 
@@ -385,7 +386,7 @@ def propel_boundary_function(n_x_loc, n_y_loc, item):
             item.direction += 0.25 * updown
 
         return True
-    elif (n_y_loc - item.radius <= 0) or (n_y_loc + item.radius >= HEIGHT):
+    elif (n_y_loc - item.radius <= 1) or (n_y_loc + item.radius >= HEIGHT - 1):
         delta = (n_x_loc - item.x) / (WIDTH / 2)
         item.direction = (𝛕 - item.direction + delta) % 𝛕
         return True
@@ -534,6 +535,10 @@ def generate_items(config):
             platform_config["quadrant"], grid_config["width"], grid_config["height"]
         )
         platforms.append(Platform(x, y, 0, 0))
+
+    platforms.append(Platform(0, HEIGHT / 2, 0, 0, width=1, height=HEIGHT))
+    platforms.append(Platform(WIDTH, HEIGHT / 2, 0, 0, width=1, height=HEIGHT))
+    platforms.append(Platform(WIDTH / 2, HEIGHT, 0, 0, width=WIDTH, height=1))
     platforms.append(player_platform)
 
     return items, platforms, player_platform
