@@ -15,8 +15,8 @@ NUM_ACTIONS = 3
 
 SCREEN_WIDTH = 32  # 500
 SCREEN_HEIGHT = 32  # 500
-SPEED = 0.03
-INTERNAL = 100
+SPEED = 0.02
+INTERNAL = 50
 VISIBLE = False
 
 WIDTH = 32
@@ -24,10 +24,11 @@ HEIGHT = 32
 CHANNELS = 1
 
 VARIANCE = 0.5
-PLAYER_SPEED = 0.7 * SPEED
+PLAYER_SPEED = 0.75 * SPEED
+# INITIAL_BALL_SPEED = 0.25 * SPEED
 BALL_SPEED = 1.0 * SPEED
-MAX_BALL_SPEED = 1.5 * SPEED
-MIN_BALL_SPEED = 0.75 * SPEED
+# MAX_BALL_SPEED = 1.5 * SPEED
+# MIN_BALL_SPEED = 0.5 * SPEED
 
 PLAYER = 6
 
@@ -117,7 +118,7 @@ class OpenCvViewer:
         self.viewer = None
 
     def clear(self):
-        self.display.fill(255)
+        self.display.fill(0)
 
     def draw_circle(self, x, y, radius, color):
         cv.circle(
@@ -220,10 +221,10 @@ class Ball:
         if not at_boundary:
             self.x = n_x
             self.y = n_y
-            self.v = max(0.999 * self.v, MIN_BALL_SPEED)
+            # self.v = max(0.999 * self.v, MIN_BALL_SPEED)
             self.was_at_boundary = 0
         else:
-            self.v = min(1.01 * self.v, MAX_BALL_SPEED)
+            # self.v = min(1.01 * self.v, MAX_BALL_SPEED)
             # If we're playing for keeps, the bottom is dangerous!
             if BOTTOM_DANGER:
                 if n_y - self.radius <= 1:
@@ -308,7 +309,7 @@ class BallEnv(core.Env):
         self.viewer = OpenCvViewer(HEIGHT, WIDTH)
         self.internal_steps = internal_steps
         self.observation_space = spaces.Box(
-            low=0, high=255, shape=(WIDTH, HEIGHT, CHANNELS), dtype=np.uint8
+            low=0, high=1, shape=(WIDTH, HEIGHT, CHANNELS), dtype=np.uint8
         )
         self.action_space = spaces.Discrete(NUM_ACTIONS)
         self.state = None
@@ -502,7 +503,7 @@ def get_random_location(quadrant, width, height, variance=VARIANCE):
     elif quadrant == "star":
         # the ball can appear anywhere on the top portion of the game.
         x_left, x_right = 0, width
-        y_bot, y_top = height * 1 / 4, height
+        y_bot, y_top = height * 3 / 4, height
         return (
             np.clip(np.random.uniform(x_left, x_right), x_left, x_right),
             np.clip(np.random.uniform(x_left, x_right), y_bot, y_top),
